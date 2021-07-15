@@ -6,7 +6,6 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
-using System.Web.Http.ModelBinding;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Identity.Owin;
@@ -319,7 +318,7 @@ namespace ProductOrderService.Controllers
         }
 
         // POST api/Account/Register
-        [Authorize(Roles = "ADMIN")]
+        [Authorize (Roles = "ADMIN")]
         [Route("Register")]
         public async Task<IHttpActionResult> Register(RegisterBindingModel model)
         {
@@ -344,8 +343,8 @@ namespace ProductOrderService.Controllers
                     return GetErrorResult(result);
                 }
             }
-
-                return Ok();
+            
+            return Ok();
         }
 
         // POST api/Account/RegisterExternal

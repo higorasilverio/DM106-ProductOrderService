@@ -20,5 +20,7 @@ namespace ProductOrderService.Data
         }
 
         public System.Data.Entity.DbSet<ProductOrderService.Models.Product> Products { get; set; }
+
+        public System.Data.Entity.DbSet<ProductOrderService.Models.Order> Orders { get; set; }
     }
 }

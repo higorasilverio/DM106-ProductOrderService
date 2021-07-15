@@ -31,7 +31,7 @@ namespace ProductOrderService.Controllers
             Product product = db.Products.Find(id);
             if (product == null)
             {
-                return NotFound();
+                throw new HttpResponseException(HttpStatusCode.NotFound);
             }
 
             return Ok(product);
@@ -80,7 +80,7 @@ namespace ProductOrderService.Controllers
             {
                 if (!ProductExists(id))
                 {
-                    return NotFound();
+                    throw new HttpResponseException(HttpStatusCode.NotFound);
                 }
                 else
                 {
@@ -125,7 +125,7 @@ namespace ProductOrderService.Controllers
             Product product = db.Products.Find(id);
             if (product == null)
             {
-                return NotFound();
+                throw new HttpResponseException(HttpStatusCode.NotFound);
             }
 
             db.Products.Remove(product);
