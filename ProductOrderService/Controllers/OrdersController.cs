@@ -36,12 +36,22 @@ namespace ProductOrderService.Controllers
 
             if (order == null)
             {
-                throw new HttpResponseException(HttpStatusCode.NotFound);
+                var resp = new HttpResponseMessage(HttpStatusCode.NotFound)
+                {
+                    Content = new StringContent(string.Format("O pedido com id {0} não pôde ser localizado", id)),
+                    ReasonPhrase = "NotFound"
+                };
+                throw new HttpResponseException(resp);
             }
             
             if (User.Identity.Name != order.username && !User.IsInRole("ADMIN"))
             {
-                throw new HttpResponseException(HttpStatusCode.Unauthorized);
+                var resp = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+                {
+                    Content = new StringContent("O pedido só pode ser visualizado pelo usuário que o criou ou por um usuário administrador"),
+                    ReasonPhrase = "Unauthorized"
+                };
+                throw new HttpResponseException(resp);
             }
             
             return Ok(order);
@@ -57,7 +67,12 @@ namespace ProductOrderService.Controllers
             
             if (User.Identity.Name != username && !User.IsInRole("ADMIN"))
             {
-                throw new HttpResponseException(HttpStatusCode.Unauthorized);
+                var resp = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+                {
+                    Content = new StringContent("O pedido só pode ser visualizado pelo usuário que o criou ou por um usuário administrador"),
+                    ReasonPhrase = "Unauthorized"
+                };
+                throw new HttpResponseException(resp);
             }
             
             return db.Orders.Where(order => order.username == username);
@@ -67,16 +82,29 @@ namespace ProductOrderService.Controllers
         [ResponseType(typeof(Order))]
         public IHttpActionResult PostOrder(Order order)
         {
+
+            if (!User.IsInRole("USER"))
+            {
+                var resp = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+                {
+                    Content = new StringContent("Os pedidos devem ser gerados apenas por usuários válidos e não pelo administrador"),
+                    ReasonPhrase = "Unauthorized"
+                };
+                throw new HttpResponseException(resp);
+            }
+
+            order.username = User.Identity.Name;
+            order.status = "novo";
+            order.pesoTotal = 0;
+            order.precoFrete = 0;
+            order.precoTotal = 0;
+            order.dataPedido = DateTime.Now;
+            order.dataEntrega = DateTime.Now;
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-
-            order.status = "novo";
-            order.pesoTotal = 0.0M;
-            order.precoFrete = 0.0M;
-            order.precoTotal = 0.0M;
-            order.dataPedido = DateTime.Now;
 
             db.Orders.Add(order);
             db.SaveChanges();
@@ -91,12 +119,22 @@ namespace ProductOrderService.Controllers
             Order order = db.Orders.Find(id);
             if (order == null)
             {
-                throw new HttpResponseException(HttpStatusCode.NotFound);
+                var resp = new HttpResponseMessage(HttpStatusCode.NotFound)
+                {
+                    Content = new StringContent(string.Format("O pedido com id {0} não pode ser localizado", id)),
+                    ReasonPhrase = "NotFound"
+                };
+                throw new HttpResponseException(resp);
             }
             
             if (User.Identity.Name != order.username && !User.IsInRole("ADMIN"))
             {
-                throw new HttpResponseException(HttpStatusCode.Unauthorized);
+                var resp = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+                {
+                    Content = new StringContent("O pedido só pode ser apagado pelo usuário que o criou ou por um usuário administrador"),
+                    ReasonPhrase = "Unauthorized"
+                };
+                throw new HttpResponseException(resp);
             }
             
             db.Orders.Remove(order);
