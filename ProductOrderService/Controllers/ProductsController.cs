@@ -31,7 +31,12 @@ namespace ProductOrderService.Controllers
             Product product = db.Products.Find(id);
             if (product == null)
             {
-                throw new HttpResponseException(HttpStatusCode.NotFound);
+                var resp = new HttpResponseMessage(HttpStatusCode.NotFound)
+                {
+                    Content = new StringContent(string.Format("O produto com id {0} não pôde ser localizado", id)),
+                    ReasonPhrase = "NotFound"
+                };
+                throw new HttpResponseException(resp);
             }
 
             return Ok(product);
@@ -49,7 +54,13 @@ namespace ProductOrderService.Controllers
 
             if (id != product.Id)
             {
-                return BadRequest("O id fornecido não é igual ao id do produto a ser alterado");
+                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent(
+                        string.Format("O id fornecido: {0}, é diferente do id do produto a ser alterado: {1}", id, product.Id)),
+                    ReasonPhrase = "BadRequest"
+                };
+                throw new HttpResponseException(resp);
             }
 
             Product productToUpdate = db.Products.AsNoTracking().First(x => x.Id == product.Id);
@@ -58,7 +69,13 @@ namespace ProductOrderService.Controllers
             {
                 if (CodeExists(product.codigo))
                 {
-                    return BadRequest("O código fornecido já está cadastrado");
+                    var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                    {
+                        Content = new StringContent(
+                            string.Format("O código fornecido: {0} já está cadastrado no sistema", product.codigo)),
+                        ReasonPhrase = "BadRequest"
+                    };
+                    throw new HttpResponseException(resp);
                 }
             }
 
@@ -66,7 +83,13 @@ namespace ProductOrderService.Controllers
             {
                 if (ModelExists(product.modelo))
                 {
-                    return BadRequest("O modelo fornecido já está cadastrado");
+                    var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                    {
+                        Content = new StringContent(
+                            string.Format("O modelo fornecido: {0} já está cadastrado no sistema", product.modelo)),
+                        ReasonPhrase = "BadRequest"
+                    };
+                    throw new HttpResponseException(resp);
                 }
             }
 
@@ -80,7 +103,12 @@ namespace ProductOrderService.Controllers
             {
                 if (!ProductExists(id))
                 {
-                    throw new HttpResponseException(HttpStatusCode.NotFound);
+                    var resp = new HttpResponseMessage(HttpStatusCode.NotFound)
+                    {
+                        Content = new StringContent(string.Format("O produto com id {0} não pôde ser localizado", id)),
+                        ReasonPhrase = "NotFound"
+                    };
+                    throw new HttpResponseException(resp);
                 }
                 else
                 {
@@ -103,12 +131,24 @@ namespace ProductOrderService.Controllers
 
             if (CodeExists(product.codigo))
             {
-                return BadRequest("O código fornecido já está cadastrado");
+                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent(
+                            string.Format("O código fornecido: {0} já está cadastrado no sistema", product.codigo)),
+                    ReasonPhrase = "BadRequest"
+                };
+                throw new HttpResponseException(resp);
             }
 
             if (ModelExists(product.modelo))
             {
-                return BadRequest("O modelo fornecido já está cadastrado");
+                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent(
+                            string.Format("O modelo fornecido: {0} já está cadastrado no sistema", product.modelo)),
+                    ReasonPhrase = "BadRequest"
+                };
+                throw new HttpResponseException(resp);
             }
 
             db.Products.Add(product);
@@ -125,7 +165,12 @@ namespace ProductOrderService.Controllers
             Product product = db.Products.Find(id);
             if (product == null)
             {
-                throw new HttpResponseException(HttpStatusCode.NotFound);
+                var resp = new HttpResponseMessage(HttpStatusCode.NotFound)
+                {
+                    Content = new StringContent(string.Format("O produto com id {0} não pôde ser localizado", id)),
+                    ReasonPhrase = "NotFound"
+                };
+                throw new HttpResponseException(resp);
             }
 
             db.Products.Remove(product);

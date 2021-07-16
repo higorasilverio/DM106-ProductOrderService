@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
+using System.ComponentModel.DataAnnotations;
 
 namespace ProductOrderService.Models
 {
@@ -17,8 +16,9 @@ namespace ProductOrderService.Models
 
         public DateTime dataPedido { get; set; }
 
-        public DateTime dataEntrega { get; set; }
+        public DateTime? dataEntrega { get; set; }
 
+        [StringLength(10, ErrorMessage = "O tamanho máximo do status é 10 caracteres")]
         public string status { get; set; }
 
         public decimal precoTotal { get; set; }

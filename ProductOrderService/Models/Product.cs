@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Web;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ProductOrderService.Models
 {
@@ -27,7 +23,6 @@ namespace ProductOrderService.Models
         [Range(10, 99999, ErrorMessage = "O preço deve ser entre 10 e 99999")]
         public decimal preco { get; set; }
 
-
         [Range(0.01, 999, ErrorMessage = "O peso do produto deve estar entre 0.01 e 999")]
         public decimal peso { get; set; }
 
@@ -44,6 +39,6 @@ namespace ProductOrderService.Models
         public decimal diametro { get; set; }
 
         [StringLength(80, ErrorMessage = "O tamanho máximo da url é 80 caracteres")]
-        public string Url { get; set; }
+        public string url { get; set; }
     }
 }
