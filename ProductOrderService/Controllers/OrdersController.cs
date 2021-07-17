@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
@@ -30,9 +31,9 @@ namespace ProductOrderService.Controllers
 
         // GET: api/Orders
         [Authorize (Roles ="ADMIN")]
-        public IQueryable<Order> GetOrders()
+        public List<Order> GetOrders()
         {
-            return db.Orders;
+            return db.Orders.Include(order => order.OrderItems).ToList();
         }
 
         // GET: api/Orders/5
@@ -57,7 +58,7 @@ namespace ProductOrderService.Controllers
         [HttpGet]
         [Route("byusername")]
         [ResponseType(typeof(Order))]
-        public IQueryable<Order> GetAllOrderByUsername(string username)
+        public List<Order> GetAllOrderByUsername(string username)
         {
             
             if (!User.Identity.Name.Equals(username) && !User.IsInRole("ADMIN"))
@@ -65,7 +66,7 @@ namespace ProductOrderService.Controllers
                         "Os pedidos só podem ser visualizados pelo usuário que os criou ou por um usuário administrador",
                         "Forbidden");
             
-            return db.Orders.Where(order => order.username == username);
+            return db.Orders.Where(order => order.username == username).ToList();
         }
 
         // POST: api/Orders
