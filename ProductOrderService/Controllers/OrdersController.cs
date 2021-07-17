@@ -69,7 +69,8 @@ namespace ProductOrderService.Controllers
             {
                 var resp = new HttpResponseMessage(HttpStatusCode.Forbidden)
                 {
-                    Content = new StringContent("O pedido só pode ser visualizado pelo usuário que o criou ou por um usuário administrador"),
+                    Content = new StringContent(
+                        "Os pedidos só podem ser visualizados pelo usuário que os criaram ou por um usuário administrador"),
                     ReasonPhrase = "Forbidden"
                 };
                 throw new HttpResponseException(resp);
@@ -82,22 +83,39 @@ namespace ProductOrderService.Controllers
         [ResponseType(typeof(Order))]
         public IHttpActionResult PostOrder(Order order)
         {
-
-            if (!User.IsInRole("USER"))
+            if (!ModelState.IsValid)
             {
-                var resp = new HttpResponseMessage(HttpStatusCode.Unauthorized)
-                {
-                    Content = new StringContent("Os pedidos devem ser gerados apenas por usuários válidos e não pelo administrador"),
-                    ReasonPhrase = "Unauthorized"
-                };
-                throw new HttpResponseException(resp);
+                return BadRequest(ModelState);
             }
 
-            order.username = User.Identity.Name;
+            if (User.IsInRole("ADMIN")) {
+                if (order.username == null || order.username.Length == 0)
+                {
+                    var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                    {
+                        Content = new StringContent("Não foi fornecido um usuário válido para o inserção do pedido"),
+                        ReasonPhrase = "BadRequest"
+                    };
+                    throw new HttpResponseException(resp);
+                }
+            } else
+            {
+                if (order.username != null && !order.username.Equals(User.Identity.Name))
+                {
+                    var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                    {
+                        Content = new StringContent("Não é possível criar um pedido para outro usuário"),
+                        ReasonPhrase = "BadRequest"
+                    };
+                    throw new HttpResponseException(resp);
+                }
+                order.username = User.Identity.Name;
+            }
+
             order.status = "novo";
-            order.pesoTotal = 0;
-            order.precoFrete = 0;
-            order.precoTotal = 0;
+            order.pesoTotal = 0M;
+            order.precoFrete = 0M;
+            order.precoTotal = 0M;
             order.dataPedido = DateTime.Now;
 
             if (!ModelState.IsValid)
@@ -137,11 +155,22 @@ namespace ProductOrderService.Controllers
                 throw new HttpResponseException(resp);
             }
 
-            if (!order.status.Equals("novo"))
+            if (order.status.Equals("fechado"))
             {
                 var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
                 {
-                    Content = new StringContent("O status do pedido não permite o seu fechamento"),
+                    Content = new StringContent("Este pedido já encontra-se fechado"),
+                    ReasonPhrase = "BadRequest"
+                };
+                throw new HttpResponseException(resp);
+            }
+
+            if (order.precoFrete == 0M)
+            {
+                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent(
+                        "O status do pedido não permite o seu fechamento. É necessário calcular o frete primeiramente"),
                     ReasonPhrase = "BadRequest"
                 };
                 throw new HttpResponseException(resp);
@@ -216,16 +245,26 @@ namespace ProductOrderService.Controllers
             {
                 var resp = new HttpResponseMessage(HttpStatusCode.Forbidden)
                 {
-                    Content = new StringContent("O pedido só pode ser apagado pelo usuário que o criou ou por um usuário administrador"),
+                    Content = new StringContent("O pedido só pode ser consultado pelo usuário que o criou ou por um usuário administrador"),
                     ReasonPhrase = "Forbidden"
                 };
                 throw new HttpResponseException(resp);
             }
 
-            string cepDestino = this.ObtemCEP();
+            string cepDestino = this.getCEP(order);
 
             OrderItem[] itemArray = new OrderItem[order.OrderItems.Count];
             order.OrderItems.CopyTo(itemArray, 0);
+
+            if (itemArray.Length == 0)
+            {
+                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("O pedido não possui produtos associados"),
+                    ReasonPhrase = "BadRequest"
+                };
+                throw new HttpResponseException(resp);
+            }
 
             string pesoPedido = CalculaPeso(itemArray);
 
@@ -247,6 +286,8 @@ namespace ProductOrderService.Controllers
             {
                 order.precoFrete = Decimal.Parse(resultado.Servicos[0].Valor);
                 order.dataEntrega = DateTime.Now.AddDays(double.Parse(resultado.Servicos[0].PrazoEntrega));
+                order.pesoTotal = Convert.ToDecimal(pesoPedido);
+                order.precoTotal = precoPedido;
                 
                 db.Entry(order).State = EntityState.Modified;
 
@@ -265,33 +306,7 @@ namespace ProductOrderService.Controllers
             {
                 var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
                 {
-                    Content = new StringContent(resultado.Servicos[0].Erro),
-                    ReasonPhrase = "BadRequest"
-                };
-                throw new HttpResponseException(resp);
-            }
-        }
-
-        // GET: api/Orders/cep
-        [ResponseType(typeof(string))]
-        [HttpGet]
-        [Route("cep")]
-        public string ObtemCEP()
-        {
-            string user = User.Identity.Name;
-            CRMRestClient crmClient = new CRMRestClient();
-            Customer customer = crmClient.GetCustomerByEmail(user);
-
-            if (customer != null)
-            {
-                return customer.zip;
-            }
-
-            else
-            {
-                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
-                {
-                    Content = new StringContent("O status do pedido não permite o seu fechamento"),
+                    Content = new StringContent(resultado.Servicos[0].MsgErro),
                     ReasonPhrase = "BadRequest"
                 };
                 throw new HttpResponseException(resp);
@@ -307,42 +322,101 @@ namespace ProductOrderService.Controllers
             base.Dispose(disposing);
         }
 
-        private bool OrderExists(int id)
+        private string getCEP(Order order)
         {
-            return db.Orders.Count(e => e.Id == id) > 0;
+            string user;
+
+            if (order == null)
+            {
+                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("Não foi fornecido o pedido"),
+                    ReasonPhrase = "BadRequest"
+                };
+                throw new HttpResponseException(resp);
+            }
+
+            if (User.IsInRole("User"))
+                user = User.Identity.Name;
+            else
+                user = order.username;
+            CRMRestClient crmClient = new CRMRestClient();
+            Customer customer = crmClient.GetCustomerByEmail(user);
+
+            if (customer != null)
+            {
+                return customer.zip;
+            }
+
+            else
+            {
+                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("Não foi possível obter o CEP do usuário"),
+                    ReasonPhrase = "BadRequest"
+                };
+                throw new HttpResponseException(resp);
+            }
         }
 
         private decimal CalculaPreco(OrderItem[] itemArray)
         {
-            return 100;
+            decimal sum = 0M;
+            for (int i = 0; i < itemArray.Length; i++)
+            {
+                sum += itemArray[i].Product.preco * itemArray[i].quantidade;
+            }
+            return sum;
         }
 
         private decimal CalculaDiametro(OrderItem[] itemArray)
         {
-            return 30;
-        }
-
-        private decimal CalculaLargura(OrderItem[] itemArray)
-        {
-            return 30;
+            decimal sum = 0M;
+            for (int i = 0; i < itemArray.Length; i++)
+            {
+                sum += itemArray[i].Product.diametro * itemArray[i].quantidade;
+            }
+            return sum;
         }
 
         private decimal CalculaAltura(OrderItem[] itemArray)
         {
-            return 30;
+            decimal sum = 0M;
+            for (int i = 0; i < itemArray.Length; i++)
+            {
+                sum += itemArray[i].Product.altura * itemArray[i].quantidade;
+            }
+            return sum;
         }
 
+        private decimal CalculaLargura(OrderItem[] itemArray)
+        {
+            decimal largura = 0M;
+            for (int i = 0; i < itemArray.Length; i++)
+            {
+                if (itemArray[i].Product.largura > largura)
+                    largura = itemArray[i].Product.largura;
+            }
+            return largura;
+        }
+        
         private decimal CalculaComprimento(OrderItem[] itemArray)
         {
-            return 30;
+            decimal comprimento = 0M;
+            for (int i = 0; i < itemArray.Length; i++)
+            {
+                if (itemArray[i].Product.comprimento > comprimento)
+                    comprimento = itemArray[i].Product.largura;
+            }
+            return comprimento;
         }
 
         private string CalculaPeso(OrderItem[] itemArray)
         {
-            decimal sum = 0;
+            decimal sum = 0M;
             for (int i = 0; i < itemArray.Length; i++)
             {
-                sum += itemArray[i].Product.peso;
+                sum += itemArray[i].Product.peso * itemArray[i].quantidade;
             }
             return sum.ToString("F2");
         }

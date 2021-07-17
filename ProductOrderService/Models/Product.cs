@@ -20,22 +20,22 @@ namespace ProductOrderService.Models
         [StringLength(8, ErrorMessage = "O tamanho máximo do código é 8 caracteres")]
         public string codigo { get; set; }
 
-        [Range(10, 99999, ErrorMessage = "O preço deve ser entre 10 e 99999")]
+        [Range(10, 9999, ErrorMessage = "O preço deve ser entre 10 e 9999")]
         public decimal preco { get; set; }
 
-        [Range(0.01, 999, ErrorMessage = "O peso do produto deve estar entre 0.01 e 999")]
+        [Range(0.1, 10, ErrorMessage = "O peso do produto (kg) deve estar entre 0.1 e 999")]
         public decimal peso { get; set; }
 
-        [Range(0.1, 9, ErrorMessage = "A altura do produto deve estar entre 0.1 e 9")]
+        [Range(10, 99, ErrorMessage = "A altura do produto (cm) deve estar entre 10 e 99")]
         public decimal altura { get; set; }
 
-        [Range(0.1, 9, ErrorMessage = "A largura do produto deve estar entre 0.1 e 9")]
+        [Range(10, 99, ErrorMessage = "A largura do produto (cm) deve estar entre 10 e 99")]
         public decimal largura { get; set; }
 
-        [Range(0.1, 9, ErrorMessage = "O comprimento do produto deve estar entre 0.1 e 9")]
+        [Range(10, 99, ErrorMessage = "O comprimento do produto (cm) deve estar entre 10 e 99")]
         public decimal comprimento { get; set; }
 
-        [Range(0.1, 9, ErrorMessage = "O diametro do produto deve estar entre 0.1 e 9")]
+        [Range(10, 99, ErrorMessage = "O diametro do produto (cm) deve estar entre 10 e 99")]
         public decimal diametro { get; set; }
 
         [StringLength(80, ErrorMessage = "O tamanho máximo da url é 80 caracteres")]
