@@ -29,15 +29,10 @@ namespace ProductOrderService.Controllers
         public IHttpActionResult GetProduct(int id)
         {
             Product product = db.Products.Find(id);
+
             if (product == null)
-            {
-                var resp = new HttpResponseMessage(HttpStatusCode.NotFound)
-                {
-                    Content = new StringContent(string.Format("O produto com id {0} não pôde ser localizado", id)),
-                    ReasonPhrase = "NotFound"
-                };
-                throw new HttpResponseException(resp);
-            }
+                ShowErrorToUser(HttpStatusCode.NotFound,
+                    string.Format("O produto com id {0} não pôde ser localizado", id), "NotFound");
 
             return Ok(product);
         }
@@ -48,50 +43,24 @@ namespace ProductOrderService.Controllers
         public IHttpActionResult PutProduct(int id, Product product)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             if (id != product.Id)
-            {
-                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
-                {
-                    Content = new StringContent(
-                        string.Format("O id fornecido: {0}, é diferente do id do produto a ser alterado: {1}", id, product.Id)),
-                    ReasonPhrase = "BadRequest"
-                };
-                throw new HttpResponseException(resp);
-            }
+                ShowErrorToUser(HttpStatusCode.BadRequest,
+                    string.Format("O id fornecido: {0}, é diferente do id do produto a ser alterado: {1}", id, product.Id),
+                    "BadRequest");
 
             Product productToUpdate = db.Products.AsNoTracking().First(x => x.Id == product.Id);
 
+            int control = 0;
             if (productToUpdate.codigo != product.codigo)
-            {
                 if (CodeExists(product.codigo))
-                {
-                    var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
-                    {
-                        Content = new StringContent(
-                            string.Format("O código fornecido: {0} já está cadastrado no sistema", product.codigo)),
-                        ReasonPhrase = "BadRequest"
-                    };
-                    throw new HttpResponseException(resp);
-                }
-            }
-
+                    control = 1;           
             if (productToUpdate.modelo != product.modelo)
-            {
                 if (ModelExists(product.modelo))
-                {
-                    var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
-                    {
-                        Content = new StringContent(
-                            string.Format("O modelo fornecido: {0} já está cadastrado no sistema", product.modelo)),
-                        ReasonPhrase = "BadRequest"
-                    };
-                    throw new HttpResponseException(resp);
-                }
-            }
+                    control = control == 0 ? 2 : 3;
+            if (control != 0)
+                InformBodyError(control, product);
 
             db.Entry(product).State = EntityState.Modified;
 
@@ -102,18 +71,10 @@ namespace ProductOrderService.Controllers
             catch (DbUpdateConcurrencyException)
             {
                 if (!ProductExists(id))
-                {
-                    var resp = new HttpResponseMessage(HttpStatusCode.NotFound)
-                    {
-                        Content = new StringContent(string.Format("O produto com id {0} não pôde ser localizado", id)),
-                        ReasonPhrase = "NotFound"
-                    };
-                    throw new HttpResponseException(resp);
-                }
+                    ShowErrorToUser(HttpStatusCode.NotFound,
+                    string.Format("O produto com id {0} não pôde ser localizado", id), "NotFound");
                 else
-                {
                     throw;
-                }
             }
 
             return StatusCode(HttpStatusCode.NoContent);
@@ -125,31 +86,15 @@ namespace ProductOrderService.Controllers
         public IHttpActionResult PostProduct(Product product)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
+            int control = 0;
             if (CodeExists(product.codigo))
-            {
-                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
-                {
-                    Content = new StringContent(
-                            string.Format("O código fornecido: {0} já está cadastrado no sistema", product.codigo)),
-                    ReasonPhrase = "BadRequest"
-                };
-                throw new HttpResponseException(resp);
-            }
-
+                control = 1;
             if (ModelExists(product.modelo))
-            {
-                var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
-                {
-                    Content = new StringContent(
-                            string.Format("O modelo fornecido: {0} já está cadastrado no sistema", product.modelo)),
-                    ReasonPhrase = "BadRequest"
-                };
-                throw new HttpResponseException(resp);
-            }
+                control = control == 0 ? 2 : 3;
+            if (control != 0)
+                InformBodyError(control, product);
 
             db.Products.Add(product);
             db.SaveChanges();
@@ -163,15 +108,10 @@ namespace ProductOrderService.Controllers
         public IHttpActionResult DeleteProduct(int id)
         {
             Product product = db.Products.Find(id);
+
             if (product == null)
-            {
-                var resp = new HttpResponseMessage(HttpStatusCode.NotFound)
-                {
-                    Content = new StringContent(string.Format("O produto com id {0} não pôde ser localizado", id)),
-                    ReasonPhrase = "NotFound"
-                };
-                throw new HttpResponseException(resp);
-            }
+                ShowErrorToUser(HttpStatusCode.NotFound,
+                string.Format("O produto com id {0} não pôde ser localizado", id), "NotFound");
 
             db.Products.Remove(product);
             db.SaveChanges();
@@ -182,9 +122,8 @@ namespace ProductOrderService.Controllers
         protected override void Dispose(bool disposing)
         {
             if (disposing)
-            {
                 db.Dispose();
-            }
+
             base.Dispose(disposing);
         }
 
@@ -201,6 +140,42 @@ namespace ProductOrderService.Controllers
         private bool ModelExists(string model)
         {
             return db.Products.Count(e => e.modelo == model) > 0;
+        }
+
+        private void InformBodyError(int control, Product product)
+        {
+            switch (control)
+            {
+                case 1:
+                    ShowErrorToUser(
+                        HttpStatusCode.BadRequest,
+                        string.Format("O código fornecido: {0} já está cadastrado no sistema", product.codigo),
+                        "BadRequest");
+                    break;
+                case 2:
+                    ShowErrorToUser(
+                        HttpStatusCode.BadRequest,
+                        string.Format("O modelo fornecido: {0} já está cadastrado no sistema", product.modelo),
+                        "BadRequest");
+                    break;
+                case 3:
+                    ShowErrorToUser(
+                        HttpStatusCode.BadRequest,
+                        string.Format(
+                            "O modelo: {0} e o código: {1} já estão cadastrados no sistema", product.modelo, product.codigo),
+                        "BadRequest");
+                    break;
+            }
+        }
+
+        private void ShowErrorToUser(HttpStatusCode statusCode, string content, string reasonPhrase)
+        {
+            var resp = new HttpResponseMessage(statusCode)
+            {
+                Content = new StringContent(content),
+                ReasonPhrase = reasonPhrase
+            };
+            throw new HttpResponseException(resp);
         }
     }
 }
